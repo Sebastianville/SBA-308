@@ -13,13 +13,13 @@ const CourseInfo = {
       {
         id: 1,
         name: "Declare a Variable",
-        due_at: "2025-01-25",
+        due_at: "2023-01-25",
         points_possible: 50,
       },
       {
         id: 2,
         name: "Write a Function",
-        due_at: "2025-02-27",
+        due_at: "2023-02-27",
         points_possible: 150,
       },
       {
@@ -37,7 +37,7 @@ const CourseInfo = {
       learner_id: 125,
       assignment_id: 1,
       submission: {
-        submitted_at: "2025-01-25",
+        submitted_at: "2023-01-25",
         score: 47,
       },
     },
@@ -45,7 +45,7 @@ const CourseInfo = {
       learner_id: 125,
       assignment_id: 2,
       submission: {
-        submitted_at: "2025-02-12",
+        submitted_at: "2023-02-12",
         score: 150,
       },
     },
@@ -53,7 +53,7 @@ const CourseInfo = {
       learner_id: 125,
       assignment_id: 3,
       submission: {
-        submitted_at: "2025-01-25",
+        submitted_at: "2023-01-25",
         score: 400,
       },
     },
@@ -61,7 +61,7 @@ const CourseInfo = {
       learner_id: 132,
       assignment_id: 1,
       submission: {
-        submitted_at: "2025-01-24",
+        submitted_at: "2023-01-24",
         score: 39,
       },
     },
@@ -69,7 +69,7 @@ const CourseInfo = {
       learner_id: 132,
       assignment_id: 2,
       submission: {
-        submitted_at: "2025-03-07",
+        submitted_at: "2023-03-07",
         score: 140,
       },
     },
@@ -77,7 +77,7 @@ const CourseInfo = {
 
 
 
-  //============Step 1=================================================
+  //=================================Step 1=================================================
 function validateData(course, group) {
     // Validate AssignmentGroup-course relationship
     if (group.course_id !== course.id) {
@@ -92,7 +92,7 @@ function validateData(course, group) {
     });
 }
 
-//============Step 2================================================= filter the assignment that is due
+//=====================================Step 2================================================= filter the assignment that is due
 function filterValidAssignments(assignments) {
   const now = new Date();
   console.log(now);
@@ -101,7 +101,7 @@ function filterValidAssignments(assignments) {
   return assignments.filter(assignment => new Date(assignment.due_at) < now)
 }
 
-//============Step 3================================================= processes each learner submission 
+//==================================Step 3================================================= processes each learner submission 
 function caculateAssignmentScores (submissions, assignments) {
   let scores = {};
   assignments.forEach(assignment => {
@@ -120,28 +120,64 @@ function caculateAssignmentScores (submissions, assignments) {
   return scores
 }
 
-let learner = {}
-console.log(learner)
 
-function getLearnerData (course, ag, submissions) {
+
+
+//==========================================Step 4================================================= processes each learner submission 
+
+function calculateWeightedAverage(scores, assignments) {
+  let totalPoints = 0;
+  let weightedScore = 0;
   
-  validateData(course, ag)
+  assignments.forEach(assignment => {
+    if (scores[assignment.id] !== undefined) {
+      totalPoints += assignment.points_possible;
+      weightedScore += (scores[assignment.id] / 100) *  assignment.points_possible;
+    }
+  });
+  
+  return (weightedScore / totalPoints) * 100;
+}
 
-  let validAssignment = filterValidAssignments(ag.assignments)
-  console.log(validAssignment)
 
-submissions.forEach(submission => {
-  //we want to group each learner individually
-  if (!learner[submission.learner_id]) {
-    learner[submission.learner_id] = {
-      id: submission.learner_id,
-      score: {
 
+
+//=============================================Main function=======================
+function getLearnerData (course, ag, submissions) {
+  try {
+    validateData(course, ag)
+
+    const validAssignment = filterValidAssignments(ag.assignments)
+    // console.log(validAssignment)
+    const learner = {}
+  submissions.forEach(submission => {
+    //we want to group each learner individually
+    if (!learner[submission.learner_id]) {
+      learner[submission.learner_id] = {
+        id: submission.learner_id,
+        score: {
+  
+        }
       }
     }
+    learner[submission.learner_id].score = caculateAssignmentScores(submissions.filter(sub => sub.learner_id === submission.learner_id), validAssignment)
+  })
+
+    const results = Object.values(learner).map(learner => {
+    const learnerScores = learner.scores;
+    const average = calculateWeightedAverage(learnerScores, validAssignments);
+
+    return {
+      id: learner.id,
+      avg: average,
+      ...learnerScores
+    };
+  });
+    return results 
+  } catch (error) {
+    console.error(`Error processing data: ${error.message}`);
+    return [];
   }
-  learner[submission.learner_id].score = caculateAssignmentScores(submissions.filter(sub => sub.learner_id === submission.learner_id), validAssignment)
-})
  
 }
 
