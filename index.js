@@ -76,26 +76,73 @@ const CourseInfo = {
   ];
 
 
-function getLearnerData (course, ag, submission) {
 
-
-  function validateData(course, group) {
+  //============Step 1=================================================
+function validateData(course, group) {
     // Validate AssignmentGroup-course relationship
     if (group.course_id !== course.id) {
       throw new Error(`Invalid data: AssignmentGroup ${group.id} does not belong to Course ${course.id}`);
     }
-  
+    
     // Validate Assignments within the group
     group.assignments.forEach(assignment => {
       if (assignment.points_possible === 0) {
         throw new Error(`Invalid data: Assignment ${assignment.id} has zero possible points.`);
       }
     });
-  }
-
-
-  
-  //an empty array to store learners data 
-  const results = []
-
 }
+
+//============Step 2================================================= filter the assignment that is due
+function filterValidAssignments(assignments) {
+  const now = new Date();
+  console.log(now);
+  console.log(assignments)
+  //the new Date helps to compare the asignment
+  return assignments.filter(assignment => new Date(assignment.due_at) < now)
+}
+
+//============Step 3================================================= processes each learner submission 
+function caculateAssignmentScores (submissions, assignments) {
+  let scores = {};
+  assignments.forEach(assignment => {
+    let submission = submissions.find(sub => sub.assignment_id === assignment.id) 
+    if (submission) {
+      let score =submission.submission.score
+      console.log(score)
+      if (new Date(submission.submission.submitted_at) > new Date (assignment.due_at)){
+        score -= assignment.points_possible * 0.1
+      }
+      scores[assignment.id] = (score/assignment.points_possible) * 100 
+    } 
+    console.log(submission)
+    
+  })
+  return scores
+}
+
+let learner = {}
+console.log(learner)
+
+function getLearnerData (course, ag, submissions) {
+  
+  validateData(course, ag)
+
+  let validAssignment = filterValidAssignments(ag.assignments)
+  console.log(validAssignment)
+
+submissions.forEach(submission => {
+  //we want to group each learner individually
+  if (!learner[submission.learner_id]) {
+    learner[submission.learner_id] = {
+      id: submission.learner_id,
+      score: {
+
+      }
+    }
+  }
+  learner[submission.learner_id].score = caculateAssignmentScores(submissions.filter(sub => sub.learner_id === submission.learner_id), validAssignment)
+})
+ 
+}
+
+getLearnerData(CourseInfo, AssignmentGroup, LearnerSubmissions)
